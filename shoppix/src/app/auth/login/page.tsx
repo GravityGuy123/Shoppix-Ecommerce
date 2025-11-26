@@ -100,7 +100,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-2 rounded-lg bg-cyan-500 text-white font-medium hover:bg-cyan-600 transition"
+            className="w-full py-2 rounded-lg bg-cyan-500 text-white font-medium hover:bg-cyan-600 transition flex justify-center items-center"
           >
             {isSubmitting ? <Spinner /> : "Login"}
           </button>
@@ -116,7 +116,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-sm text-center mt-6 text-gray-600 dark:text-gray-400">
-          Don’t have an account?{" "}
+          {`Don’t have an account?`}{" "}
           <Link
             href="/auth/register"
             className="text-cyan-500 font-semibold hover:underline"
