@@ -27,6 +27,13 @@ export default function Header() {
     );
   }
 
+  const getUserDisplayName = (email: string | undefined) => {
+    if (!email) return "";
+    const name = email.split("@")[0];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  };
+
+
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -89,7 +96,7 @@ export default function Header() {
             {/* Desktop Auth Buttons */}
             {isLoggedIn ? (
               <div className="hidden md:flex items-center gap-4">
-                <span className="text-gray-800">Hello, {user?.email}</span>
+                <span className="text-gray-800">Hello, {getUserDisplayName(user?.email)}</span>
                 <Link href="/profile" className="flex items-center gap-2 text-blue-600 hover:underline">
                   {user?.avatar && (
                     <img
@@ -181,7 +188,7 @@ export default function Header() {
             {/* Mobile Auth Buttons */}
             {isLoggedIn ? (
               <div className="space-y-2">
-                <span className="px-4 py-2 text-gray-800 block">Hello, {user?.email}</span>
+                <span className="px-4 py-2 text-gray-800 block">Hello, {getUserDisplayName(user?.email)}</span>
                 <Link
                   href="/profile"
                   className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:underline"
