@@ -14,6 +14,7 @@ from datetime import timedelta
 import os
 from pathlib import Path
 from decouple import config
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,10 +41,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
     # Third party package
     "rest_framework",
     "corsheaders",
     "rest_framework_simplejwt",
+
     # custom
     "core",
 ]
@@ -59,8 +62,27 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+CORS_ALLOWED_ORIGINS = [
+    # Development origins
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
 
+    # Production origins
+    # "https://your-production-domain.com",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_HEADERS = (*default_headers, "Access-Control-Allow-Credentials")
+CORS_ALLOW_CREDENTIALS = True
+
+SESSION_COOKIE_SECURE = False  # True in production (HTTPS)
+CSRF_COOKIE_SECURE = False  # True in production
 
 ROOT_URLCONF = "zconfig.urls"
 
@@ -115,18 +137,33 @@ AUTH_PASSWORD_VALIDATORS = [
 # Rest Framework Configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "core.authentication.CookieJWTAuthentication",  # read JWT from cookie
     )
 }
 
 # Simple JWT Authentication Config
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
+    # "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    # "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
+
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "UPDATE_LAST_LOGIN": True,
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+
+    # HTTP only cookies
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_COOKIE": "access_token",  # Cookie name for access token
+    "AUTH_COOKIE_REFRESH": "refresh_token", # Cookie name for refresh token
+    "AUTH_COOKIE_HTTP_ONLY": True,
+    "AUTH_COOKIE_SECURE": True,     # Must be True in prod (HTTPS)
+    "AUTH_COOKIE_SAMESITE": "Lax",  # Cross-domain
 }
+
+# Session cookie (optional if using Django sessions)
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True  # Must be True in prod (HTTPS)
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

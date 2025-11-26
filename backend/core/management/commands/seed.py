@@ -1,6 +1,7 @@
 import os
 import random
 from django.core.files import File
+from django.db import transaction
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from faker import Faker
@@ -25,49 +26,51 @@ class Command(BaseCommand):
                     self.style.ERROR("At least more than one user exists")
                 )
             else:
-                for i in range(1, 6):
-                    email = f"user{i}@gmail.com"
-                    data = {"email": email, "password": password}
+                with transaction.atomic():
+                    for i in range(1, 6):
+                        email = f"user{i}@gmail.com"
+                        data = {"email": email, "password": password}
 
-                    users.append(User.objects.create_user(**data))  # create user
+                        users.append(User.objects.create_user(**data))  # create user
 
-                # create two vendors
-                vendors = [
-                    Vendor.objects.create(
-                        user=users[i + 3],
-                        brand_email=fake.company(),
-                        brand_name=fake.company_email(),
-                        is_activated=True,
-                    )
-                    for i in range(2)
-                ]
-
-                # Handle dummy images
-                images_folder = os.path.join(BASE_DIR, "images")
-                placeholder_images = os.listdir(images_folder)
-
-                # create 100 products
-                for index in range(100):
-                    img_name = random.choice(placeholder_images)
-                    image_path = os.path.join(images_folder, img_name)
-                    index = index + 1
-                    vi = index % 2
-                    stock = fake.random_int(50, 999)
-                    price = float(fake.pricetag().replace(",", "_")[1:])
-                    old_price = price + fake.random_int(100, 10_000)
-
-                    with open(image_path, "rb") as img:
-                        Product.objects.create(
-                            vendor=vendors[vi],
-                            name=f"Product {index + 1}",
-                            stock=stock,
-                            is_on_flash_sales=(index % 10 == 0) or (index % 15 == 0),
-                            current_price=price,
-                            old_price=old_price if (index % 7 == 0) else None,
-                            thumbnail=File(img, name=img_name),
+                    # create two vendors
+                    vendors = [
+                        Vendor.objects.create(
+                            user=users[i + 3],
+                            brand_email=fake.company_email(),
+                            brand_name=fake.company(),
+                            is_activated=True,
                         )
+                        for i in range(2)
+                    ]
 
-                self.stdout.write(self.style.SUCCESS("Data seeded successfully"))
+                    # Handle dummy images
+                    images_folder = os.path.join(BASE_DIR, "images")
+                    placeholder_images = os.listdir(images_folder)
+
+                    # create 100 products
+                    for index in range(100):
+                        img_name = random.choice(placeholder_images)
+                        image_path = os.path.join(images_folder, img_name)
+                        index = index + 1
+                        vi = index % 2
+                        stock = fake.random_int(50, 999)
+                        price = float(fake.pricetag().replace(",", "_")[1:])
+                        old_price = price + fake.random_int(100, 10_000)
+
+                        with open(image_path, "rb") as img:
+                            Product.objects.create(
+                                vendor=vendors[vi],
+                                name=f"Product {index + 1}",
+                                stock=stock,
+                                is_on_flash_sales=(index % 10 == 0)
+                                or (index % 15 == 0),
+                                current_price=price,
+                                old_price=old_price if (index % 7 == 0) else None,
+                                thumbnail=File(img, name=img_name),
+                            )
+
+                    self.stdout.write(self.style.SUCCESS("Data seeded successfully"))
         except Exception as e:
             for user in User.objects.all():
                 if user.is_staff:

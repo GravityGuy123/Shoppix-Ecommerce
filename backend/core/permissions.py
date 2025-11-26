@@ -10,3 +10,14 @@ class IsVendor(BasePermission):
     
     def has_permission(self, request, view) -> bool:
         return bool(request.user.is_authenticated and hasattr(request.user, 'is_vendor') and request.user.is_vendor)
+
+
+class IsModerator(BasePermission):
+    """
+    Allows access only to moderator users.
+    """
+    
+    message = "User is not a moderator"
+    
+    def has_permission(self, request, view) -> bool:
+        return bool(request.user.is_authenticated and hasattr(request.user, 'is_moderator') and request.user.is_moderator)

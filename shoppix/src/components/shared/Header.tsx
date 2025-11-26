@@ -7,15 +7,25 @@ import { ShoppingCart, Search, Heart, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/components/auth/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const router = useRouter();
-  const cartItemsCount = 0; // TODO: Connect to cart state
+  const cartItemsCount = 0;
 
-  const { loggedIn, logout } = useAuth();
+  const { user, isLoggedIn, logout, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <div className="container mx-auto px-4 flex h-16 items-center justify-between">
+          <span className="text-gray-400">Loading...</span>
+        </div>
+      </header>
+    );
+  }
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,9 +34,9 @@ export default function Header() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push("/");
+  const handleLogout = async () => {
+    await logout(); // wait for the backend to clear cookies
+    router.push("/"); // then redirect
   };
 
   return (
@@ -51,7 +61,8 @@ export default function Header() {
                 placeholder="Search for products, brands, and categories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 w-full rounded-full focus-visible:ring-cyan-500 focus-visible:ring-2 focus-visible:ring-offset-0"
+                className="pl-10 pr-4 w-full rounded-full border border-cyan-300 bg-white text-gray-700 placeholder-gray-400
+                 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-0 transition-all"
               />
             </div>
           </form>
@@ -75,23 +86,50 @@ export default function Header() {
               </Link>
             </Button>
 
-            {/* Desktop Get Started / Logout */}
-            {loggedIn ? (
-              <Button
-                variant="default"
-                className="hidden md:flex bg-red-500 hover:bg-red-600 text-white"
-                onClick={handleLogout}
-              >
-                Logout
-              </Button>
+            {/* Desktop Auth Buttons */}
+            {isLoggedIn ? (
+              <div className="hidden md:flex items-center gap-4">
+                <span className="text-gray-800">Hello, {user?.email}</span>
+                <Link href="/profile" className="flex items-center gap-2 text-blue-600 hover:underline">
+                  {user?.avatar && (
+                    <img
+                      src={user.avatar}
+                      alt="Avatar"
+                      className="h-6 w-6 rounded-full"
+                    />
+                  )}
+                  Profile
+                </Link>
+                <Button
+                  variant="default"
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
+              </div>
             ) : (
-              <Button
-                variant="default"
-                className="hidden md:flex bg-cyan-500 hover:bg-cyan-600 text-white"
-                asChild
-              >
-                <Link href="/auth/register">Get Started</Link>
-              </Button>
+              <div className="hidden md:flex items-center gap-3">
+                {/* Login button */}
+                <Link
+                  href="/auth/login"
+                  className="px-4 py-2 text-sm font-medium 
+                  text-cyan-600 border border-cyan-500 
+                  rounded-lg transition-colors duration-300
+                  hover:bg-cyan-50"
+                >
+                  Login
+                </Link>
+
+                {/* Register button */}
+                <Button
+                  variant="default"
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                  asChild
+                >
+                  <Link href="/auth/register">Register</Link>
+                </Button>
+              </div>
             )}
 
             {/* Mobile menu toggle */}
@@ -115,7 +153,8 @@ export default function Header() {
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 w-full rounded-xl focus-visible:ring-cyan-500 focus-visible:ring-2 focus-visible:ring-offset-0"
+              className="pl-10 pr-4 w-full rounded-full border border-cyan-300 bg-white text-gray-700 placeholder-gray-400
+                   focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-0 transition-all"
             />
           </div>
         </form>
@@ -139,25 +178,54 @@ export default function Header() {
               <ShoppingCart className="h-5 w-5" /> <span>Cart</span>
             </Link>
 
-            {/* Mobile Get Started / Logout */}
-            {loggedIn ? (
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setIsMenuOpen(false);
-                }}
-                className="w-full text-left px-4 py-2 text-gray-600 hover:text-red-500 hover:bg-gray-50 rounded-lg transition"
-              >
-                Logout
-              </button>
+            {/* Mobile Auth Buttons */}
+            {isLoggedIn ? (
+              <div className="space-y-2">
+                <span className="px-4 py-2 text-gray-800 block">Hello, {user?.email}</span>
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:underline"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {user?.avatar && (
+                    <img
+                      src={user.avatar}
+                      alt="Avatar"
+                      className="h-6 w-6 rounded-full"
+                    />
+                  )}
+                  Profile
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-gray-600 hover:text-red-500 hover:bg-gray-50 rounded-lg transition"
+                >
+                  Logout
+                </button>
+              </div>
             ) : (
-              <Link
-                href="/auth/register"
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-cyan-500 hover:bg-gray-50 rounded-lg transition"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <span>Get Started</span>
-              </Link>
+              <div className="space-y-2 px-4">
+                {/* Mobile login */}
+                <Link
+                  href="/auth/login"
+                  className="block w-full text-center px-4 py-2 border border-cyan-500 text-cyan-600 rounded-lg hover:bg-cyan-50 transition"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Login
+                </Link>
+
+                {/* Mobile Register */}
+                <Link
+                  href="/auth/register"
+                  className="block w-full text-center px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Register
+                </Link>
+              </div>
             )}
           </div>
         )}

@@ -1,16 +1,26 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   images: {
     remotePatterns: [
+      // Django backend media
       {
-        protocol: 'http',
-        hostname: process.env.NEXT_PUBLIC_API_URL as string,
+        protocol: "http",
+        hostname: "localhost",
+        port: "8000",
+        pathname: "/media/**",
       },
+
+      // Unsplash main domain
       {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+
+      // Unsplash secondary domain (needed!)
+      {
+        protocol: "https",
+        hostname: "plus.unsplash.com",
       },
     ],
   },

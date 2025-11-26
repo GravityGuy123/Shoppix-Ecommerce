@@ -1,4 +1,8 @@
+from django.conf import settings
+from django.views.decorators.csrf import ensure_csrf_cookie
 from uuid import UUID
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.decorators import api_view, permission_classes, parser_classes
@@ -38,6 +42,112 @@ def register_user(request: Request) -> Response:
         return Response(status=status.HTTP_201_CREATED)
 
     return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+def login(request) -> Response:
+    """
+    Logs in a user and sets access & refresh tokens as HTTP-only cookies.
+    """
+    email = request.data.get("email")
+    password = request.data.get("password")
+    user = authenticate(request, email=email, password=password)
+    
+    if not user:
+        return Response(
+            {"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    data = {"id": user.id, "email": user.email}
+
+    # Generate JWT tokens
+    refresh = RefreshToken.for_user(user)
+    access_token = str(refresh.access_token)
+    refresh_token = str(refresh)
+
+    # Calculate max_age from SIMPLE_JWT settings
+    access_max_age = int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds())
+    refresh_max_age = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
+
+    response = Response(data=data, status=status.HTTP_200_OK)
+
+    # Set HTTP-only cookies
+    response.set_cookie(
+        key=settings.SIMPLE_JWT.get("AUTH_COOKIE", "access_token"),
+        value=access_token,
+        httponly=settings.SIMPLE_JWT.get("AUTH_COOKIE_HTTP_ONLY", True),
+        secure=settings.SIMPLE_JWT.get("AUTH_COOKIE_SECURE", False),
+        samesite=settings.SIMPLE_JWT.get("AUTH_COOKIE_SAMESITE", "Lax"),
+        max_age=access_max_age,
+    )
+    response.set_cookie(
+        key=settings.SIMPLE_JWT.get("AUTH_COOKIE_REFRESH", "refresh_token"),
+        value=refresh_token,
+        httponly=settings.SIMPLE_JWT.get("AUTH_COOKIE_HTTP_ONLY", True),
+        secure=settings.SIMPLE_JWT.get("AUTH_COOKIE_SECURE", False),
+        samesite=settings.SIMPLE_JWT.get("AUTH_COOKIE_SAMESITE", "Lax"),
+        max_age=refresh_max_age,
+    )
+
+    return response
+
+
+@api_view(["POST"])
+def logout_view(request) -> Response:
+    """
+    Logs out a user by deleting JWT cookies.
+    """
+    response = Response({"detail": "Logged out successfully"}, status=status.HTTP_200_OK)
+    response.delete_cookie(settings.SIMPLE_JWT.get("AUTH_COOKIE", "access_token"))
+    response.delete_cookie(settings.SIMPLE_JWT.get("AUTH_COOKIE_REFRESH", "refresh_token"))
+    return response
+
+
+@api_view(["POST"])
+def refresh_view(request) -> Response:
+    """
+    Refreshes the access token using the refresh token cookie.
+    """
+    refresh_token = request.COOKIES.get(
+        settings.SIMPLE_JWT.get("AUTH_COOKIE_REFRESH", "refresh_token")
+    )
+    if not refresh_token:
+        return Response({"detail": "Refresh token missing"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        refresh = RefreshToken(refresh_token)
+        access_token = str(refresh.access_token)
+        access_max_age = int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds())
+
+        response = Response({"detail": "Token refreshed"}, status=status.HTTP_200_OK)
+        response.set_cookie(
+            key=settings.SIMPLE_JWT.get("AUTH_COOKIE", "access_token"),
+            value=access_token,
+            httponly=settings.SIMPLE_JWT.get("AUTH_COOKIE_HTTP_ONLY", True),
+            secure=settings.SIMPLE_JWT.get("AUTH_COOKIE_SECURE", False),
+            samesite=settings.SIMPLE_JWT.get("AUTH_COOKIE_SAMESITE", "Lax"),
+            max_age=access_max_age,
+        )
+        return response
+    except Exception:
+        return Response({"detail": "You need to login again"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(["GET"])
+@ensure_csrf_cookie # ensures a CSRF cookie is set
+def get_csrf(request):
+    return Response({"detail": "CSRF cookie set"})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def user_view(request):
+    """
+    Returns current authenticated user data.
+    """
+    user = request.user
+    data = {"id": user.id, "email": user.email}
+    return Response(data=data, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])

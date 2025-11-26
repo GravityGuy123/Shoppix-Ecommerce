@@ -1,21 +1,30 @@
 import axios from "axios";
 
-export const baseUrl: string =
-  process.env.NEXT_PUPLIC_API_URL || "http://127.0.0.1:8000";
+export const baseUrl = "http://localhost:8000/api";
 
 export const axiosInstance = axios.create({
   baseURL: baseUrl,
-  timeout: 10000,
+  withCredentials: true, // ✅ ensures cookies are sent
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-export const handleApiError = (error: unknown, message: string) => {
-  let errorMessage;
-
-  if (axios.isAxiosError(error)) {
-    errorMessage = error.response?.data.details || message;
+// Automatically add CSRF token to unsafe requests
+axiosInstance.interceptors.request.use((config) => {
+  // Only attach CSRF token for POST, PUT, PATCH, DELETE
+  const unsafeMethods = ["post", "put", "patch", "delete"];
+  if (unsafeMethods.includes(config.method?.toLowerCase() || "")) {
+    const csrfToken = getCookie("csrftoken"); // Django CSRF cookie
+    if (csrfToken) {
+      config.headers["X-CSRFToken"] = csrfToken;
+    }
   }
-  return errorMessage;
-};
+  return config;
+});
+
+// Helper to read a cookie by name
+function getCookie(name: string) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : null;
+}

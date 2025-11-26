@@ -4,54 +4,41 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { FaGoogle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
-import { axiosInstance, handleApiError } from "@/lib/axios.config";
+import { axiosInstance } from "@/lib/axios.config";
 import { registerFormSchema, RegisterSchema } from "@/lib/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import Image from "next/image";
 import { useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function RegistrationPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  // const [preview, setPreview] = useState<string | null>(null);
 
-  const [preview, setPreview] = useState<string | null>(null);
+  // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (file) {
-      setPreview(URL.createObjectURL(file));
-    } else {
-      setPreview(null)
-    }
-  };
+  //   if (file) {
+  //     setPreview(URL.createObjectURL(file));
+  //   } else {
+  //     setPreview(null)
+  //   }
+  // };
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterSchema>({resolver: zodResolver(registerFormSchema)})
+  } = useForm<RegisterSchema>({ resolver: zodResolver(registerFormSchema) });
 
   const router = useRouter();
 
   async function onSubmit(data: RegisterSchema) {
     try {
-      // build form data
-      const formData = new FormData();
-
-      formData.append("email", data.email);
-      formData.append("password", data.password);
-      formData.append("confirm_password", data.confirm_password);
-
-      // send request
-      await axiosInstance.post("api/users", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await axiosInstance.post("api/users", data);
 
       toast.success("Registration successful! login", {
         position: "top-right",
@@ -59,12 +46,10 @@ export default function RegistrationPage() {
 
       setTimeout(() => {
         router.push("/auth/login");
-      }, 2000);
-    } catch (error) {
-      const errorMessage = handleApiError(error, "Registration failed");
-      toast.error(errorMessage, {
-        position: "top-center"
-      });
+      }, 2_000);
+    } catch {
+      const errorMesssage = "Registration failed";
+      toast.error(errorMesssage, { position: "top-center" });
     }
   }
 
@@ -169,7 +154,7 @@ export default function RegistrationPage() {
           </div>
 
           {/* Avatar */}
-          <div>
+          {/* <div>
             <span className="block text-sm mb-1 text-gray-600 dark:text-gray-300">
               Avatar (JPG/PNG/WEBP, max 2MB)
             </span>
@@ -201,7 +186,7 @@ export default function RegistrationPage() {
               width={400}
               className="w-24 h-24 object-cover rounded" />
             </div>
-          )}
+          )} */}
 
           {/* Submit */}
           <Button
